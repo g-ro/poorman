@@ -71,14 +71,17 @@ class MainWindow:
         """
         logger.info("Initializing main window")
         self.root = root
-        self.root.title(f"{__title__} v{__version__}")
-        self.root.geometry("1200x800")
         
-        # Configure grid weights
+        # Configure window
+        self.root.title(f"{__title__} v{__version__}")
+        self.root.minsize(800, 600)  # Set minimum window size
+        self.root.geometry("1200x800")  # Set default size
+        
+        # Configure grid weights for proper resizing
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(0, weight=1)
         
-        # Create main container
+        # Create main container with proper padding
         main_frame = ttk.Frame(self.root, padding="10")
         main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
         main_frame.columnconfigure(0, weight=1)

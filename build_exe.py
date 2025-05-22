@@ -24,10 +24,18 @@ def build_exe():
     script_dir = os.path.dirname(os.path.abspath(__file__))
     
     # Define the path to the main script
-    main_script = os.path.join(script_dir, 'src', '__main__.py')
+    main_script = os.path.join(script_dir, 'src', 'main.py')
     
-    # Define icon path (you can add an .ico file later)
+    # Define icon path
     icon_path = os.path.join(script_dir, 'resources', 'poorman.ico')
+    
+    # Ensure icon exists
+    if not os.path.exists(icon_path):
+        print(f"Warning: Icon file not found at {icon_path}")
+        sys.exit(1)
+    
+    # Define data files to include
+    resources_path = os.path.join(script_dir, 'resources')
     
     # PyInstaller command line arguments
     args = [
@@ -37,6 +45,7 @@ def build_exe():
         '--windowed',  # Don't show console window when running the executable
         '--icon=' + icon_path,  
         '--add-data=src;src',  # Include the src directory
+        f'--add-data={resources_path};resources',  # Include the resources directory
         '--clean',  # Clean PyInstaller cache
         '--noconfirm',  # Replace existing dist directory without confirmation
     ]
@@ -54,6 +63,7 @@ def build_exe():
     
     print(f"Building executable from: {main_script}")
     print(f"Working directory: {script_dir}")
+    print(f"Including resources from: {resources_path}")
     
     # Run PyInstaller
     PyInstaller.__main__.run(args)
