@@ -19,8 +19,7 @@ poorman/
 ├── README.md
 ├── LICENSE
 ├── requirements.txt
-├── src/
-│   ├── __init__.py
+├── src/   
 │   ├── main.py
 │   ├── version.py
 │   ├── models/
