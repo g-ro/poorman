@@ -112,3 +112,60 @@ if os.environ.get("POORMAN_DEBUG"):
     set_log_level(logging.DEBUG)
 
 __all__ = ['logger', 'set_log_level', 'setup_logger'] 
+
+# --- Global exception hooks ---
+def install_global_exception_hooks(root: Optional[object] = None) -> None:
+    """Install global exception hooks to ensure all unhandled errors are logged.
+
+    If a Tk root is provided, hooks into Tkinter callback exceptions as well.
+    """
+    def _excepthook(exc_type, exc_value, exc_traceback):
+        # Avoid logging KeyboardInterrupt tracebacks as errors
+        if exc_type is KeyboardInterrupt:
+            return
+        logger.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
+
+    sys.excepthook = _excepthook
+
+    # Hook Tkinter callback exceptions if a Tk root is supplied
+    if root is not None:
+        try:
+            def _tk_report_callback_exception(exc_type, exc_value, exc_traceback):
+                logger.error("Tkinter callback exception", exc_info=(exc_type, exc_value, exc_traceback))
+            # Tkinter calls this on callback exceptions
+            setattr(root, 'report_callback_exception', _tk_report_callback_exception)
+        except Exception:
+            logger.debug("Failed to attach Tkinter exception hook", exc_info=True)
+
+__all__.append('install_global_exception_hooks')
+
+# --- Redaction helpers ---
+SENSITIVE_HEADER_KEYS = {
+    'authorization', 'proxy-authorization', 'cookie', 'set-cookie',
+    'x-api-key', 'x-auth-token', 'x-amz-security-token', 'api-key', 'apikey',
+}
+
+SENSITIVE_SUBSTRINGS = {'token', 'secret', 'password', 'passwd', 'key'}
+
+def _should_redact(key: str) -> bool:
+    k = key.lower()
+    if k in SENSITIVE_HEADER_KEYS:
+        return True
+    return any(sub in k for sub in SENSITIVE_SUBSTRINGS)
+
+def redact_headers(headers: dict) -> dict:
+    """Return a copy of headers with sensitive values redacted."""
+    try:
+        redacted = {}
+        for k, v in (headers or {}).items():
+            if _should_redact(str(k)):
+                redacted[k] = '<redacted>'
+            else:
+                redacted[k] = v
+        return redacted
+    except Exception:
+        # Never fail logging due to redaction issues
+        logger.debug("Redaction failed; returning original headers", exc_info=True)
+        return dict(headers or {})
+
+__all__.append('redact_headers')

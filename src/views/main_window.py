@@ -37,7 +37,7 @@ from models.response_model import ResponseModel
 from controllers.request_controller import RequestController
 from views.request_panel import RequestPanel
 from views.response_panel import ResponsePanel
-from utils.logging_config import logger
+from utils.logging_config import logger, redact_headers
 from version import (
     __title__, __description__, __version__, __author__,
     __license__, __copyright__, __website__, __status__
@@ -217,7 +217,19 @@ class MainWindow:
             request (RequestModel): The request to be sent
         """
         logger.info(f"Sending {request.method} request to {request.url}")
-        logger.debug(f"Request details: {request}")
+        try:
+            safe_details = {
+                'method': request.method,
+                'url': request.url,
+                'params': list(request.params.keys()),
+                'headers': list(redact_headers(request.headers).items()),
+                'body_type': request.body_type,
+                'body_size': len(request.body_content or '') if request.body_type in ['raw', 'json'] else len(request.form_data or {}),
+                'auth_type': request.auth_type,
+            }
+            logger.debug(f"Request details: {safe_details}")
+        except Exception:
+            logger.debug("Failed to log request details safely", exc_info=True)
         self.status_bar.config(text="Sending request...")
         self.request_controller.send_request(request)
     
@@ -231,7 +243,13 @@ class MainWindow:
         logger.info(f"Received response with status code: {response.status_code}")
         logger.debug(f"Response details: {response}")
         self.response_panel.display_response(response)
-        self.status_bar.config(text="Request completed" if response.is_success else "Request failed")
+        if response.is_success:
+            self.status_bar.config(text="Request completed")
+        else:
+            if response.status_code == 0 and response.error:
+                self.status_bar.config(text=f"Error: {response.error}")
+            else:
+                self.status_bar.config(text="Request failed")
     
     def save_request(self):
         """Save the current request configuration to a file."""

@@ -8,6 +8,7 @@ import urllib3
 
 from models.request_model import RequestModel
 from models.response_model import ResponseModel
+from utils.logging_config import logger
 
 # Disable SSL warnings for testing purposes
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -65,6 +66,7 @@ class RequestService:
             )
             
         except Exception as e:
+            logger.exception("HTTP request failed: %s %s", request.method, request.url)
             return ResponseModel.from_error(e)
     
     def _prepare_auth(self, request: RequestModel):

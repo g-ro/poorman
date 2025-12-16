@@ -6,6 +6,8 @@ from models.request_model import RequestModel
 from models.response_model import ResponseModel
 from services.request_service import RequestService
 from services.storage_service import StorageService
+from utils.logging_config import logger
+import json
 
 class RequestController:
     def __init__(self, on_response_received: Callable[[ResponseModel], None]):
@@ -16,6 +18,15 @@ class RequestController:
     
     def send_request(self, request: RequestModel):
         """Send HTTP request in a separate thread"""
+        # Pre-validate JSON body to surface errors early
+        if request.body_type == "json" and request.body_content.strip():
+            try:
+                json.loads(request.body_content)
+            except json.JSONDecodeError as e:
+                logger.error("Invalid JSON body: %s", str(e), exc_info=True)
+                messagebox.showerror("Invalid JSON", f"The JSON body is invalid.\n\n{e}")
+                return
+
         self.current_request = request
         threading.Thread(target=self._send_request_thread, daemon=True).start()
     
@@ -26,6 +37,7 @@ class RequestController:
             # Notify UI with response
             self.on_response_received(response)
         except Exception as e:
+            logger.exception("Unhandled exception during request sending")
             messagebox.showerror("Request Error", str(e))
     
     def save_request(self, request: RequestModel, file_path: str):
@@ -33,6 +45,7 @@ class RequestController:
         try:
             self.storage_service.save_request(request, file_path)
         except Exception as e:
+            logger.exception("Failed to save request")
             messagebox.showerror("Save Error", str(e))
     
     def load_request(self, file_path: str) -> Optional[RequestModel]:
@@ -40,6 +53,7 @@ class RequestController:
         try:
             return self.storage_service.load_request(file_path)
         except Exception as e:
+            logger.exception("Failed to load request")
             messagebox.showerror("Load Error", str(e))
             return None
     
@@ -48,6 +62,7 @@ class RequestController:
         try:
             return self.request_service.setup_oauth2_session(client_id, redirect_uri, scope)
         except Exception as e:
+            logger.exception("OAuth2 setup error")
             messagebox.showerror("OAuth2 Error", str(e))
             return None
     
@@ -57,5 +72,6 @@ class RequestController:
             self.request_service.get_oauth2_token(code, client_secret, token_url)
             return True
         except Exception as e:
+            logger.exception("OAuth2 token retrieval error")
             messagebox.showerror("OAuth2 Error", str(e))
             return False 

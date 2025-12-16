@@ -77,6 +77,30 @@ The application follows the Model-View-Controller (MVC) pattern with additional 
    python src/main.py
    ```
 
+## Debug Logging
+
+- Set the `POORMAN_DEBUG` environment variable to enable verbose debug logs.
+- Logs are written to `logs/poorman.log` (rotating, up to 5 MB x 5).
+
+Examples:
+
+Windows (PowerShell):
+```powershell
+$env:POORMAN_DEBUG=1
+python src/main.py
+```
+
+Windows (cmd):
+```bat
+set POORMAN_DEBUG=1
+python src\main.py
+```
+
+Linux/macOS:
+```bash
+POORMAN_DEBUG=1 python src/main.py
+```
+
 ## Dependencies
 
 - Python 3.7+

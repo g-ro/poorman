@@ -17,12 +17,16 @@ import sys
 import tkinter as tk
 from tkinter import ttk
 from views.main_window import MainWindow
+from utils.logging_config import logger, install_global_exception_hooks
 
 def main():
     """Main function to run the application"""
     # Create root window but don't show it yet
     root = tk.Tk()
     root.withdraw()
+
+    # Install global exception hooks to capture all errors
+    install_global_exception_hooks(root)
     
     # Set application icon
     try:
@@ -44,9 +48,9 @@ def main():
         if os.path.exists(icon_path):
             root.iconbitmap(icon_path)
         else:
-            print(f"Warning: Could not find icon at {icon_path}")
+            logger.warning("Could not find icon at %s", icon_path)
     except Exception as e:
-        print(f"Could not load application icon: {e}")
+        logger.exception("Could not load application icon")
     
     # Configure style
     style = ttk.Style()

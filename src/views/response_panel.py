@@ -18,7 +18,7 @@ import json
 
 from models.response_model import ResponseModel
 from views.components import SyntaxText
-from utils.logging_config import logger
+from utils.logging_config import logger, redact_headers
 
 class ResponsePanel:
     """
@@ -109,13 +109,24 @@ class ResponsePanel:
         Args:
             response (ResponseModel): The response to display
         """
-        logger.debug(f"Displaying response: {response}")
+        try:
+            safe_headers = redact_headers(response.headers or {})
+            logger.debug({
+                'status_code': response.status_code,
+                'reason': response.reason,
+                'headers': safe_headers,
+                'elapsed_ms': response.elapsed_time,
+                'size': len(response.content or b''),
+                'error': response.error,
+            })
+        except Exception:
+            logger.debug("Failed to log response safely", exc_info=True)
         
         # Update status with color
         status_code = response.status_code
         status_color = (
             "green" if 200 <= status_code < 300
-            else "red" if status_code >= 400
+            else "red" if status_code == 0 or status_code >= 400
             else "orange"
         )
         self.status_label.config(
@@ -135,7 +146,14 @@ class ResponsePanel:
         )
         self.size_label.config(text=f"Size: {size_text}")
         
-        # Display content with formatting
+        # If error response, show error details immediately
+        if response.status_code == 0:
+            error_text = response.error or "An unknown error occurred."
+            self.response_text.set_content(error_text, None)
+            self.response_text.see("1.0")
+            return
+
+        # Display content with formatting for non-error responses
         content_type = response.headers.get('content-type', '')
         
         try:
